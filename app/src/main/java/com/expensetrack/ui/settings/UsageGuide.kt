@@ -76,8 +76,8 @@ fun BackgroundSetupSection() {
 fun HowToUseSection() {
     SectionTitle("使用说明")
     GuideCard(verticalSpacing = 10.dp) {
-        UsageLine("自动记账", "建行消费通知到达后自动记一笔，App 推送和短信重复的只记一次。")
-        UsageLine("编辑", "在「记录」里点一笔消费，写备注，金额不对也能改。")
+        UsageLine("自动记账", "建行消费、入账通知到达后自动记一笔，退款算收入，App 推送和短信重复的只记一次。")
+        UsageLine("编辑", "在「记录」里点一笔，写备注；金额或收支类型不对也能改。")
         UsageLine("看统计", "「统计」按日、周、月、年查看，月视图是日历，颜色越深花得越多。")
         UsageLine("AI 分析", "填好下方 DeepSeek Key 后，在统计页点「开始分析」，结果会保存。")
         UsageLine("每日小结", "每天在「记录」页设定的时间推送当天花费。")

@@ -37,6 +37,7 @@ fun HomeScreen(actions: ExpenseActions, onOpenSettings: () -> Unit, vm: ExpenseV
     val context = LocalContext.current
     val todayTotal by vm.todayTotal.collectAsStateWithLifecycle()
     val monthTotal by vm.monthTotal.collectAsStateWithLifecycle()
+    val monthIncome by vm.monthIncome.collectAsStateWithLifecycle()
     val recent by vm.recent.collectAsStateWithLifecycle()
     val summaryTime by vm.summaryTime.collectAsStateWithLifecycle()
     val backgroundSetupDone by vm.backgroundSetupDone.collectAsStateWithLifecycle()
@@ -65,7 +66,7 @@ fun HomeScreen(actions: ExpenseActions, onOpenSettings: () -> Unit, vm: ExpenseV
             modifier = Modifier.padding(padding),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
         ) {
-            item { TotalsHeader(todayTotal, monthTotal) }
+            item { TotalsHeader(todayTotal, monthTotal, monthIncome) }
             if (!permissions.allGranted) {
                 item {
                     PermissionGuide(

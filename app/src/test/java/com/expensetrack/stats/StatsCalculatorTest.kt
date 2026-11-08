@@ -11,8 +11,27 @@ class StatsCalculatorTest {
     private val zone = ZoneId.of("Asia/Shanghai")
     private val today = LocalDate.of(2026, 11, 8)
 
-    private fun expense(cents: Long, at: LocalDateTime) =
-        Expense(amountCents = cents, timestamp = at.atZone(zone).toInstant().toEpochMilli(), source = "test")
+    private fun expense(cents: Long, at: LocalDateTime, isIncome: Boolean = false) =
+        Expense(amountCents = cents, timestamp = at.atZone(zone).toInstant().toEpochMilli(), source = "test",
+            isIncome = isIncome)
+
+    @Test
+    fun `income is totalled separately and never counts as spending`() {
+        val day = StatsPeriod.of(Granularity.DAY, today)
+        val list = listOf(
+            expense(1200, LocalDateTime.of(2026, 11, 8, 9, 0)),
+            expense(800000, LocalDateTime.of(2026, 11, 8, 10, 0), isIncome = true),
+            expense(1990, LocalDateTime.of(2026, 11, 8, 11, 0), isIncome = true),
+        )
+        val stats = StatsCalculator.compute(day, list, today, zone)
+
+        assertEquals(1200, stats.totalCents)
+        assertEquals(1, stats.count)
+        assertEquals(1200, stats.maxSingleCents)
+        assertEquals(mapOf(today to 1200L), stats.dailyTotals)
+        assertEquals(801990, stats.incomeCents)
+        assertEquals(801990 - 1200, stats.balanceCents)
+    }
 
     @Test
     fun `week stats bucket by weekday and average over elapsed days`() {

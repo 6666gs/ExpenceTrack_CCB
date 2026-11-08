@@ -45,6 +45,12 @@ class BankNotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) = handle(sbn)
 
+    override fun onNotificationRemoved(sbn: StatusBarNotification, rankingMap: RankingMap, reason: Int) {
+        val isOurs = sbn.packageName == packageName && sbn.id == KeepAliveNotification.NOTIFICATION_ID
+        // Only user dismissals; our own stopForeground (setting switched off) reports REASON_APP_CANCEL.
+        if (isOurs && reason in USER_DISMISS_REASONS) KeepAliveNotification.restoreIfDismissed(this)
+    }
+
     private fun handle(sbn: StatusBarNotification) {
         if (sbn.packageName == packageName) return
         val notification = sbn.notification ?: return
@@ -84,5 +90,6 @@ class BankNotificationListener : NotificationListenerService() {
 
     private companion object {
         const val TAG = "BankNotificationListener"
+        val USER_DISMISS_REASONS = setOf(REASON_CANCEL, REASON_CANCEL_ALL)
     }
 }

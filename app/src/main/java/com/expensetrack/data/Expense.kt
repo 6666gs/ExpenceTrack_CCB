@@ -1,5 +1,6 @@
 package com.expensetrack.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -20,9 +21,17 @@ data class Expense(
     val source: String,
     /** Original notification text, kept for dedup and troubleshooting. */
     val rawText: String? = null,
+    /** Money in (income, refund, reversal). Records are spending unless marked otherwise. */
+    @ColumnInfo(defaultValue = "0")
+    val isIncome: Boolean = false,
 ) {
     val isManual: Boolean get() = source == SOURCE_MANUAL
 
     /** What the user sees first: their own note wins over the captured merchant name. */
-    val title: String get() = note ?: merchant ?: if (isManual) "手动记录" else "建设银行消费"
+    val title: String
+        get() = note ?: merchant ?: when {
+            isManual -> if (isIncome) "手动收入" else "手动记录"
+            isIncome -> "建设银行入账"
+            else -> "建设银行消费"
+        }
 }

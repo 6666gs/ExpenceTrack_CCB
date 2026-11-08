@@ -28,9 +28,16 @@ object SummaryNotifier {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    fun message(summary: DaySummary): String =
-        if (summary.count == 0) "今天还没有记录到消费"
-        else "今天共消费 ${Money.format(summary.totalCents)}（${summary.count} 笔）"
+    fun message(summary: DaySummary): String {
+        val income = if (summary.incomeCents > 0) "收入 ${Money.format(summary.incomeCents)}" else null
+        return when {
+            summary.count > 0 && income != null ->
+                "今天共消费 ${Money.format(summary.totalCents)}（${summary.count} 笔），$income"
+            summary.count > 0 -> "今天共消费 ${Money.format(summary.totalCents)}（${summary.count} 笔）"
+            income != null -> "今天没有消费，$income"
+            else -> "今天还没有记录到消费"
+        }
+    }
 
     @SuppressLint("MissingPermission") // checked via areNotificationsEnabled()
     suspend fun postToday(context: Context) {

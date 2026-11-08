@@ -30,5 +30,7 @@ class SummarySchedulerTest {
     fun `message reflects total and count`() {
         assertEquals("今天共消费 ¥63.90（2 笔）", SummaryNotifier.message(DaySummary(6390, 2)))
         assertEquals("今天还没有记录到消费", SummaryNotifier.message(DaySummary(0, 0)))
+        assertEquals("今天共消费 ¥63.90（2 笔），收入 ¥100.00", SummaryNotifier.message(DaySummary(6390, 2, 10000)))
+        assertEquals("今天没有消费，收入 ¥100.00", SummaryNotifier.message(DaySummary(0, 0, 10000)))
     }
 }

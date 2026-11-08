@@ -6,6 +6,8 @@ package com.expensetrack.data
  * existing auto-captured record has the same amount within [WINDOW_MS] and either came from a
  * different app (push vs SMS) or has the identical text (re-posted notification).
  *
+ * Income and spending of the same amount are never duplicates of each other.
+ *
  * Two genuine identical purchases from the same app still differ in their timestamp text,
  * so they are both kept.
  */
@@ -15,5 +17,6 @@ object DuplicateDetector {
     fun isDuplicate(candidate: Expense, nearbySameAmount: List<Expense>): Boolean =
         nearbySameAmount
             .filterNot { it.isManual }
+            .filter { it.isIncome == candidate.isIncome }
             .any { it.source != candidate.source || it.rawText == candidate.rawText }
 }

@@ -31,6 +31,13 @@ class MoneyTest {
     }
 
     @Test
+    fun `signed format shows direction`() {
+        assertEquals("+¥1,234.56", Money.formatSigned(123456))
+        assertEquals("-¥25.00", Money.formatSigned(-2500))
+        assertEquals("¥0.00", Money.formatSigned(0))
+    }
+
+    @Test
     fun `input form round-trips through the parser`() {
         assertEquals("25", Money.toInput(2500))
         assertEquals("25.5", Money.toInput(2550))

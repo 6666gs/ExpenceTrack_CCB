@@ -26,6 +26,10 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -109,8 +113,11 @@ private fun AutoFocus(focus: FocusRequester, key: Any?) {
     }
 }
 
+/** What the add and edit sheets hand back. */
+data class ExpenseEdit(val amountCents: Long, val note: String, val isIncome: Boolean)
+
 @Composable
-fun ExpenseEditorSheet(expense: Expense?, onDismiss: () -> Unit, onSave: (Expense, Long, String) -> Unit) {
+fun ExpenseEditorSheet(expense: Expense?, onDismiss: () -> Unit, onSave: (Expense, ExpenseEdit) -> Unit) {
     // Keep showing the last record while the sheet slides away.
     var shown by remember { mutableStateOf(expense) }
     if (expense != null && expense != shown) shown = expense
@@ -120,12 +127,16 @@ fun ExpenseEditorSheet(expense: Expense?, onDismiss: () -> Unit, onSave: (Expens
     }
 }
 
-/** Edits the note (focused, the common case) and the amount, for when a capture got it wrong. */
+/**
+ * Edits the note (focused, the common case), the amount and income vs spending, for when a
+ * capture got something wrong.
+ */
 @Composable
-private fun ExpenseEditorContent(expense: Expense, onDismiss: () -> Unit, onSave: (Expense, Long, String) -> Unit) {
+private fun ExpenseEditorContent(expense: Expense, onDismiss: () -> Unit, onSave: (Expense, ExpenseEdit) -> Unit) {
     val initialNote = expense.note.orEmpty()
     var note by remember(expense.id) { mutableStateOf(TextFieldValue(initialNote, TextRange(initialNote.length))) }
     var amount by remember(expense.id) { mutableStateOf(Money.toInput(expense.amountCents)) }
+    var isIncome by remember(expense.id) { mutableStateOf(expense.isIncome) }
     val cents = Money.parseYuanToCents(amount)
     val focus = remember { FocusRequester() }
     AutoFocus(focus, expense.id)
@@ -133,14 +144,17 @@ private fun ExpenseEditorContent(expense: Expense, onDismiss: () -> Unit, onSave
     val time = Instant.ofEpochMilli(expense.timestamp).atZone(ZoneId.systemDefault()).format(FULL_TIME)
     val source = expense.merchant ?: if (expense.isManual) "手动记录" else "建设银行"
 
-    Text("编辑消费", style = MaterialTheme.typography.titleLarge)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("编辑记录", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+        KindSelector(isIncome, onChange = { isIncome = it })
+    }
     Text("$time · $source", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(16.dp))
     OutlinedTextField(
         value = note,
         onValueChange = { note = it.copy(text = it.text.take(MAX_NOTE_LENGTH)) },
-        label = { Text("买了什么") },
-        placeholder = { Text("例如：午饭 牛肉面") },
+        label = { Text(if (isIncome) "什么收入" else "买了什么") },
+        placeholder = { Text(if (isIncome) "例如：工资" else "例如：午饭 牛肉面") },
         supportingText = { Text("${note.text.length}/$MAX_NOTE_LENGTH") },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         maxLines = 3,
@@ -148,7 +162,24 @@ private fun ExpenseEditorContent(expense: Expense, onDismiss: () -> Unit, onSave
     )
     AmountField(amount, onChange = { amount = it }, invalid = cents == null)
     SheetButtons(confirmLabel = "保存", confirmEnabled = cents != null, onDismiss = onDismiss,
-        onConfirm = { cents?.let { onSave(expense, it, note.text) } })
+        onConfirm = { cents?.let { onSave(expense, ExpenseEdit(it, note.text, isIncome)) } })
+}
+
+/** 支出 / 收入 switch shared by both sheets. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun KindSelector(isIncome: Boolean, onChange: (Boolean) -> Unit) {
+    val options = listOf(false to "支出", true to "收入")
+    SingleChoiceSegmentedButtonRow {
+        options.forEachIndexed { index, (income, label) ->
+            SegmentedButton(
+                selected = isIncome == income,
+                onClick = { onChange(income) },
+                shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                label = { Text(label) },
+            )
+        }
+    }
 }
 
 @Composable
@@ -174,7 +205,7 @@ private fun AmountField(
 }
 
 @Composable
-fun AddExpenseSheet(visible: Boolean, onDismiss: () -> Unit, onConfirm: (amountCents: Long, note: String?) -> Unit) {
+fun AddExpenseSheet(visible: Boolean, onDismiss: () -> Unit, onConfirm: (ExpenseEdit) -> Unit) {
     InWindowSheet(visible = visible, onDismiss = onDismiss) {
         // Fresh fields every time the sheet opens.
         if (visible) AddExpenseContent(onDismiss, onConfirm)
@@ -182,27 +213,31 @@ fun AddExpenseSheet(visible: Boolean, onDismiss: () -> Unit, onConfirm: (amountC
 }
 
 @Composable
-private fun AddExpenseContent(onDismiss: () -> Unit, onConfirm: (Long, String?) -> Unit) {
+private fun AddExpenseContent(onDismiss: () -> Unit, onConfirm: (ExpenseEdit) -> Unit) {
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
+    var isIncome by remember { mutableStateOf(false) }
     val cents = Money.parseYuanToCents(amount)
     val focus = remember { FocusRequester() }
     AutoFocus(focus, Unit)
 
-    Text("手动记一笔", style = MaterialTheme.typography.titleLarge)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("手动记一笔", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+        KindSelector(isIncome, onChange = { isIncome = it })
+    }
     Spacer(Modifier.height(16.dp))
     AmountField(amount, onChange = { amount = it }, invalid = cents == null, modifier = Modifier.focusRequester(focus),
         imeAction = ImeAction.Next)
     OutlinedTextField(
         value = note,
         onValueChange = { note = it.take(MAX_NOTE_LENGTH) },
-        label = { Text("买了什么（可选）") },
+        label = { Text(if (isIncome) "什么收入（可选）" else "买了什么（可选）") },
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         modifier = Modifier.fillMaxWidth(),
     )
     SheetButtons(confirmLabel = "保存", confirmEnabled = cents != null, onDismiss = onDismiss,
-        onConfirm = { cents?.let { onConfirm(it, note) } })
+        onConfirm = { cents?.let { onConfirm(ExpenseEdit(it, note, isIncome)) } })
 }
 
 @Composable

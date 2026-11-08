@@ -75,7 +75,8 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Saved result and the period's live records come from one flatMap, so staleness never flickers. */
     private val saved = _period.flatMapLatest { p ->
-        combine(savedAnalyses.observe(p.key), repository.observeBetween(p.range())) { row, records ->
+        combine(savedAnalyses.observe(p.key), repository.observeBetween(p.range())) { row, all ->
+            val records = all.filterNot { it.isIncome } // the analysis covers spending only
             val result = row?.let { AnalysisCodec.decode(it.resultJson) }
             if (row != null && result == null) Log.w(TAG, "Discarding unreadable saved analysis for ${p.key}")
             AnalysisUiState(
@@ -125,7 +126,7 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
         setRequest(target, RequestStatus(isLoading = true))
         analysisJob = viewModelScope.launch {
             val error = try {
-                val records = repository.listBetween(target.range())
+                val records = repository.listBetween(target.range()).filterNot { it.isIncome }
                 if (records.isEmpty()) {
                     "这段时间没有消费记录"
                 } else {

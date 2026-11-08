@@ -41,7 +41,7 @@ private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
 private val DATE_FORMAT = DateTimeFormatter.ofPattern("M月d日 EEEE", Locale.CHINA)
 
 @Composable
-fun TotalsHeader(todayCents: Long, monthCents: Long) {
+fun TotalsHeader(todayCents: Long, monthCents: Long, monthIncomeCents: Long) {
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = Modifier
@@ -54,8 +54,9 @@ fun TotalsHeader(todayCents: Long, monthCents: Long) {
         Text("今日支出", style = MaterialTheme.typography.labelSmall, color = colors.onPrimary.copy(alpha = 0.7f))
         Text(Money.format(todayCents), style = MaterialTheme.typography.displayLarge, color = colors.secondary)
         Spacer(Modifier.height(12.dp))
+        val income = if (monthIncomeCents > 0) " · 收入 ${Money.format(monthIncomeCents)}" else ""
         Text(
-            "本月累计 ${Money.format(monthCents)}",
+            "本月累计 ${Money.format(monthCents)}$income",
             style = MaterialTheme.typography.titleMedium,
             color = colors.onPrimary,
         )
@@ -85,14 +86,15 @@ fun SummarySettingRow(time: LocalTime, onPickTime: () -> Unit, onSendNow: () -> 
 }
 
 @Composable
-fun DayHeader(date: LocalDate, totalCents: Long) {
+fun DayHeader(date: LocalDate, spentCents: Long, incomeCents: Long) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         val label = if (date == LocalDate.now()) "今天" else date.format(DATE_FORMAT)
         Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(Money.format(totalCents), style = MaterialTheme.typography.labelLarge,
+        val income = if (incomeCents > 0) " · 收入 ${Money.format(incomeCents)}" else ""
+        Text("${Money.format(spentCents)}$income", style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -110,7 +112,7 @@ fun ExpenseRow(expense: Expense, onClick: () -> Unit, onDelete: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClickLabel = "编辑备注", onClick = onClick)
+            .clickable(onClickLabel = "编辑", onClick = onClick)
             .padding(start = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -122,7 +124,11 @@ fun ExpenseRow(expense: Expense, onClick: () -> Unit, onDelete: () -> Unit) {
                 Text("+ 点击写备注", style = MaterialTheme.typography.labelSmall, color = colors.primary)
             }
         }
-        Text("-${Money.format(expense.amountCents)}", style = MaterialTheme.typography.titleMedium)
+        Text(
+            Money.formatSigned(if (expense.isIncome) expense.amountCents else -expense.amountCents),
+            style = MaterialTheme.typography.titleMedium,
+            color = if (expense.isIncome) colors.primary else colors.onSurface,
+        )
         IconButton(onClick = onDelete) {
             Icon(Icons.Filled.Delete, contentDescription = "删除", tint = colors.onSurfaceVariant)
         }
@@ -132,7 +138,10 @@ fun ExpenseRow(expense: Expense, onClick: () -> Unit, onDelete: () -> Unit) {
 /** Records grouped under a header per day, newest first. */
 fun LazyListScope.expenseDayGroups(expenses: List<Expense>, actions: ExpenseActions) {
     groupByDay(expenses).forEach { (date, dayExpenses) ->
-        item(key = "header-$date") { DayHeader(date, dayExpenses.sumOf { it.amountCents }) }
+        val (income, spending) = dayExpenses.partition { it.isIncome }
+        item(key = "header-$date") {
+            DayHeader(date, spending.sumOf { it.amountCents }, income.sumOf { it.amountCents })
+        }
         items(dayExpenses, key = { it.id }) { expense ->
             ExpenseRow(expense, onClick = { actions.editing = expense }, onDelete = { actions.deleting = expense })
         }
@@ -146,7 +155,7 @@ private fun groupByDay(expenses: List<Expense>): List<Pair<LocalDate, List<Expen
 @Composable
 fun EmptyState() {
     Text(
-        "还没有记录。开启通知访问权限后，建设银行的消费通知会自动记在这里；也可以点右下角手动记一笔。",
+        "还没有记录。开启通知访问权限后，建设银行的消费和入账通知会自动记在这里；也可以点右下角手动记一笔。",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(vertical = 32.dp),

@@ -41,12 +41,12 @@ fun AppRoot(vm: ExpenseViewModel = viewModel()) {
         ExpenseEditorSheet(
             expense = actions.editing,
             onDismiss = { actions.editing = null },
-            onSave = { expense, cents, note -> vm.updateExpense(expense, cents, note); actions.editing = null },
+            onSave = { expense, edit -> vm.updateExpense(expense, edit); actions.editing = null },
         )
         AddExpenseSheet(
             visible = actions.adding,
             onDismiss = { actions.adding = false },
-            onConfirm = { cents, note -> vm.addManual(cents, note); actions.adding = false },
+            onConfirm = { edit -> vm.addManual(edit.amountCents, edit.note, edit.isIncome); actions.adding = false },
         )
         actions.deleting?.let { expense ->
             DeleteExpenseDialog(

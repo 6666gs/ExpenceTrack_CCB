@@ -36,6 +36,10 @@ class ExpenseViewModel(app: Application) : AndroidViewModel(app) {
         .flatMapLatest { repository.observeMonthTotal(YearMonth.from(it)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
 
+    val monthIncome: StateFlow<Long> = today
+        .flatMapLatest { repository.observeMonthIncome(YearMonth.from(it)) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
+
     val recent: StateFlow<List<Expense>> = repository.observeRecent()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -60,12 +64,13 @@ class ExpenseViewModel(app: Application) : AndroidViewModel(app) {
         SummaryScheduler.schedule(expenseApp)
     }
 
-    fun addManual(amountCents: Long, note: String?) = launchSafely { repository.addManual(amountCents, note) }
+    fun addManual(amountCents: Long, note: String?, isIncome: Boolean) =
+        launchSafely { repository.addManual(amountCents, note, isIncome) }
 
     fun delete(expense: Expense) = launchSafely { repository.delete(expense) }
 
-    fun updateExpense(expense: Expense, amountCents: Long, note: String) =
-        launchSafely { repository.updateExpense(expense.id, amountCents, note) }
+    fun updateExpense(expense: Expense, edit: ExpenseEdit) =
+        launchSafely { repository.updateExpense(expense.id, edit.amountCents, edit.note, edit.isIncome) }
 
     fun sendSummaryNow() = launchSafely { SummaryNotifier.postToday(expenseApp) }
 

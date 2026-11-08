@@ -8,6 +8,7 @@ import java.time.ZoneId
 /** One bar in a chart; tapping it drills down into [target]. */
 data class Bucket(val label: String, val totalCents: Long, val target: StatsPeriod)
 
+/** Spending figures for a period; income is kept apart in [incomeCents]. */
 data class PeriodStats(
     val totalCents: Long,
     val count: Int,
@@ -16,7 +17,11 @@ data class PeriodStats(
     val dailyTotals: Map<LocalDate, Long>,
     /** Seven weekday bars for a week, twelve month bars for a year, empty otherwise. */
     val buckets: List<Bucket>,
+    val incomeCents: Long = 0,
 ) {
+    /** Income minus spending; negative when more went out than came in. */
+    val balanceCents: Long get() = incomeCents - totalCents
+
     companion object {
         val EMPTY = PeriodStats(0, 0, 0, 0, emptyMap(), emptyList())
     }
@@ -32,7 +37,7 @@ object StatsCalculator {
         today: LocalDate,
         zone: ZoneId = ZoneId.systemDefault(),
     ): PeriodStats {
-        val inPeriod = expenses.filter { it.localDate(zone) in period }
+        val (income, inPeriod) = expenses.filter { it.localDate(zone) in period }.partition { it.isIncome }
         val dailyTotals = inPeriod.groupBy { it.localDate(zone) }.mapValues { (_, list) -> list.sumOf { it.amountCents } }
         val total = inPeriod.sumOf { it.amountCents }
         val elapsed = period.elapsedDays(today)
@@ -43,6 +48,7 @@ object StatsCalculator {
             maxSingleCents = inPeriod.maxOfOrNull { it.amountCents } ?: 0,
             dailyTotals = dailyTotals,
             buckets = buckets(period, dailyTotals),
+            incomeCents = income.sumOf { it.amountCents },
         )
     }
 

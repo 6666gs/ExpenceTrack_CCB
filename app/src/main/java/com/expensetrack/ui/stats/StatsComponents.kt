@@ -96,6 +96,13 @@ fun StatsSummaryCard(stats: PeriodStats, granularity: Granularity) {
             if (granularity != Granularity.DAY) SummaryFigure("日均", Money.format(stats.dailyAverageCents))
             SummaryFigure("最大一笔", Money.format(stats.maxSingleCents))
         }
+        if (stats.incomeCents > 0) {
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                SummaryFigure("收入", Money.format(stats.incomeCents))
+                SummaryFigure("结余", Money.formatSigned(stats.balanceCents))
+            }
+        }
     }
 }
 
