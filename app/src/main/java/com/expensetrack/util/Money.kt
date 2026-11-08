@@ -30,6 +30,9 @@ object Money {
         }
     }
 
+    /** Plain editable form that [parseYuanToCents] accepts: 2550 -> "25.5", 2500 -> "25". */
+    fun toInput(cents: Long): String = BigDecimal.valueOf(cents, 2).stripTrailingZeros().toPlainString()
+
     fun format(cents: Long): String {
         val formatter = DecimalFormat("#,##0.00", DecimalFormatSymbols(Locale.US))
         return "¥" + formatter.format(BigDecimal.valueOf(cents, 2))

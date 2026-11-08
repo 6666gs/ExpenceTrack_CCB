@@ -2,4 +2,5 @@
     <string name="app_name">消费记录</string>
     <string name="listener_label">消费记录 · 建行通知捕获</string>
     <string name="channel_daily_summary">每日消费小结</string>
+    <string name="channel_keep_alive">后台记账（常驻）</string>
 </resources>

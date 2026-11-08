@@ -110,27 +110,30 @@ private fun AutoFocus(focus: FocusRequester, key: Any?) {
 }
 
 @Composable
-fun NoteEditorSheet(expense: Expense?, onDismiss: () -> Unit, onSave: (Expense, String) -> Unit) {
+fun ExpenseEditorSheet(expense: Expense?, onDismiss: () -> Unit, onSave: (Expense, Long, String) -> Unit) {
     // Keep showing the last record while the sheet slides away.
     var shown by remember { mutableStateOf(expense) }
     if (expense != null && expense != shown) shown = expense
 
     InWindowSheet(visible = expense != null, onDismiss = onDismiss) {
-        shown?.let { NoteEditorContent(it, onDismiss, onSave) }
+        shown?.let { ExpenseEditorContent(it, onDismiss, onSave) }
     }
 }
 
+/** Edits the note (focused, the common case) and the amount, for when a capture got it wrong. */
 @Composable
-private fun NoteEditorContent(expense: Expense, onDismiss: () -> Unit, onSave: (Expense, String) -> Unit) {
-    val initial = expense.note.orEmpty()
-    var note by remember(expense.id) { mutableStateOf(TextFieldValue(initial, TextRange(initial.length))) }
+private fun ExpenseEditorContent(expense: Expense, onDismiss: () -> Unit, onSave: (Expense, Long, String) -> Unit) {
+    val initialNote = expense.note.orEmpty()
+    var note by remember(expense.id) { mutableStateOf(TextFieldValue(initialNote, TextRange(initialNote.length))) }
+    var amount by remember(expense.id) { mutableStateOf(Money.toInput(expense.amountCents)) }
+    val cents = Money.parseYuanToCents(amount)
     val focus = remember { FocusRequester() }
     AutoFocus(focus, expense.id)
 
     val time = Instant.ofEpochMilli(expense.timestamp).atZone(ZoneId.systemDefault()).format(FULL_TIME)
     val source = expense.merchant ?: if (expense.isManual) "手动记录" else "建设银行"
 
-    Text(Money.format(expense.amountCents), style = MaterialTheme.typography.headlineMedium)
+    Text("编辑消费", style = MaterialTheme.typography.titleLarge)
     Text("$time · $source", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(16.dp))
     OutlinedTextField(
@@ -139,11 +142,35 @@ private fun NoteEditorContent(expense: Expense, onDismiss: () -> Unit, onSave: (
         label = { Text("买了什么") },
         placeholder = { Text("例如：午饭 牛肉面") },
         supportingText = { Text("${note.text.length}/$MAX_NOTE_LENGTH") },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         maxLines = 3,
         modifier = Modifier.fillMaxWidth().focusRequester(focus),
     )
-    SheetButtons(confirmLabel = "保存", confirmEnabled = true, onDismiss = onDismiss, onConfirm = { onSave(expense, note.text) })
+    AmountField(amount, onChange = { amount = it }, invalid = cents == null)
+    SheetButtons(confirmLabel = "保存", confirmEnabled = cents != null, onDismiss = onDismiss,
+        onConfirm = { cents?.let { onSave(expense, it, note.text) } })
+}
+
+@Composable
+private fun AmountField(
+    value: String,
+    onChange: (String) -> Unit,
+    invalid: Boolean,
+    modifier: Modifier = Modifier,
+    imeAction: ImeAction = ImeAction.Done,
+) {
+    val showError = invalid && value.isNotBlank()
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        label = { Text("金额（元）") },
+        prefix = { Text("¥") },
+        isError = showError,
+        supportingText = { if (showError) Text("请输入有效金额，最多两位小数") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = imeAction),
+        modifier = modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
@@ -159,22 +186,13 @@ private fun AddExpenseContent(onDismiss: () -> Unit, onConfirm: (Long, String?) 
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     val cents = Money.parseYuanToCents(amount)
-    val showError = amount.isNotBlank() && cents == null
     val focus = remember { FocusRequester() }
     AutoFocus(focus, Unit)
 
     Text("手动记一笔", style = MaterialTheme.typography.titleLarge)
     Spacer(Modifier.height(16.dp))
-    OutlinedTextField(
-        value = amount,
-        onValueChange = { amount = it },
-        label = { Text("金额（元）") },
-        isError = showError,
-        supportingText = { if (showError) Text("请输入有效金额，最多两位小数") },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-        modifier = Modifier.fillMaxWidth().focusRequester(focus),
-    )
+    AmountField(amount, onChange = { amount = it }, invalid = cents == null, modifier = Modifier.focusRequester(focus),
+        imeAction = ImeAction.Next)
     OutlinedTextField(
         value = note,
         onValueChange = { note = it.take(MAX_NOTE_LENGTH) },

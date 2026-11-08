@@ -64,7 +64,8 @@ class ExpenseViewModel(app: Application) : AndroidViewModel(app) {
 
     fun delete(expense: Expense) = launchSafely { repository.delete(expense) }
 
-    fun updateNote(expense: Expense, note: String) = launchSafely { repository.updateNote(expense.id, note) }
+    fun updateExpense(expense: Expense, amountCents: Long, note: String) =
+        launchSafely { repository.updateExpense(expense.id, amountCents, note) }
 
     fun sendSummaryNow() = launchSafely { SummaryNotifier.postToday(expenseApp) }
 

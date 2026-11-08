@@ -31,6 +31,15 @@ class MoneyTest {
     }
 
     @Test
+    fun `input form round-trips through the parser`() {
+        assertEquals("25", Money.toInput(2500))
+        assertEquals("25.5", Money.toInput(2550))
+        assertEquals("1234.56", Money.toInput(123456))
+        assertEquals("0.01", Money.toInput(1))
+        listOf(1L, 2550L, 123456L, 99_999_999L).forEach { assertEquals(it, Money.parseYuanToCents(Money.toInput(it))) }
+    }
+
+    @Test
     fun `compact format fits calendar cells`() {
         assertEquals("8", Money.formatCompact(800))
         assertEquals("12.5", Money.formatCompact(1250))

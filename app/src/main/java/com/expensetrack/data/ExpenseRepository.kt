@@ -24,7 +24,11 @@ class ExpenseRepository(
 
     suspend fun listBetween(range: DayRange): List<Expense> = dao.listBetween(range.start, range.end)
 
-    suspend fun updateNote(id: Long, note: String?) = dao.updateNote(id, normalizeNote(note))
+    /** Fixes a mis-captured amount and/or the note in one write. */
+    suspend fun updateExpense(id: Long, amountCents: Long, note: String?) {
+        require(amountCents > 0) { "amount must be positive" }
+        dao.updateAmountAndNote(id, amountCents, normalizeNote(note))
+    }
 
     suspend fun daySummary(date: LocalDate): DaySummary {
         val range = DayRange.of(date)

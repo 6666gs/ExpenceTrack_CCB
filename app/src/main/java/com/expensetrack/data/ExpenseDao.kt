@@ -14,8 +14,8 @@ interface ExpenseDao {
     @Delete
     suspend fun delete(expense: Expense)
 
-    @Query("UPDATE expenses SET note = :note WHERE id = :id")
-    suspend fun updateNote(id: Long, note: String?)
+    @Query("UPDATE expenses SET amountCents = :amountCents, note = :note WHERE id = :id")
+    suspend fun updateAmountAndNote(id: Long, amountCents: Long, note: String?)
 
     @Query("SELECT * FROM expenses WHERE timestamp >= :start AND timestamp < :end ORDER BY timestamp DESC")
     fun observeBetween(start: Long, end: Long): Flow<List<Expense>>

@@ -1,6 +1,9 @@
 package com.expensetrack.settings
 
 import android.content.Context
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalTime
 
 class SettingsStore(context: Context) {
@@ -49,6 +52,16 @@ class SettingsStore(context: Context) {
         prefs.edit().putString(KEY_DEEPSEEK_MODELS, models.joinToString(",")).apply()
     }
 
+    private val _keepAliveEnabled = MutableStateFlow(prefs.getBoolean(KEY_KEEP_ALIVE, true))
+
+    /** Ongoing "自动记账中" notification that keeps capture alive; on by default. */
+    val keepAliveEnabled: StateFlow<Boolean> = _keepAliveEnabled.asStateFlow()
+
+    fun setKeepAliveEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_KEEP_ALIVE, enabled).apply()
+        _keepAliveEnabled.value = enabled
+    }
+
     /** Set once the user confirms they have gone through the background-run steps. */
     var backgroundSetupDone: Boolean
         get() = prefs.getBoolean(KEY_BACKGROUND_SETUP_DONE, false)
@@ -63,5 +76,6 @@ class SettingsStore(context: Context) {
         private const val KEY_DEEPSEEK_MODEL = "deepseek_model"
         private const val KEY_DEEPSEEK_MODELS = "deepseek_models"
         private const val KEY_BACKGROUND_SETUP_DONE = "background_setup_done"
+        private const val KEY_KEEP_ALIVE = "keep_alive_enabled"
     }
 }

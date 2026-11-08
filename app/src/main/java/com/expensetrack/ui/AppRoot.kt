@@ -38,10 +38,10 @@ fun AppRoot(vm: ExpenseViewModel = viewModel()) {
 
     Box(Modifier.fillMaxSize()) {
         AppScaffold(tab, onSelectTab = { tab = it }, actions)
-        NoteEditorSheet(
+        ExpenseEditorSheet(
             expense = actions.editing,
             onDismiss = { actions.editing = null },
-            onSave = { expense, note -> vm.updateNote(expense, note); actions.editing = null },
+            onSave = { expense, cents, note -> vm.updateExpense(expense, cents, note); actions.editing = null },
         )
         AddExpenseSheet(
             visible = actions.adding,
