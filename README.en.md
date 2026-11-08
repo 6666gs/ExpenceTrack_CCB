@@ -24,7 +24,7 @@ An on-device Android expense tracker. It reads **China Construction Bank (CCB, �
 
 ## Install
 
-1. Download `app-release.apk`, open it on your phone and allow installing from unknown sources when asked.
+1. Download the latest `ExpenseTrack-x.y.apk` from [Releases](https://github.com/6666gs/ExpenceTrack_CCB/releases/latest), open it on your phone and allow installing from unknown sources when asked.
    - **WeChat** renames shared APKs to `.apk.1`, which stops them installing. Save the file, rename it back to `.apk` in a file manager, then install. Alternatively, send it zipped or via another channel.
 2. Open the app and grant notification access when the 记录 (Records) tab prompts you.
 3. Go to 设置 › 后台运行 · 防止漏记 (Settings › Background) and follow the steps for your phone brand. Each step has a button that opens the matching system screen.
